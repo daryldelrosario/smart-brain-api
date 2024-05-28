@@ -5,28 +5,44 @@ const handleRegister = (db, bcrypt) => (req, res) => {
   }
 
   const hash = bcrypt.hashSync(password);
-    db.transaction(trx => {
-      trx.insert({
-        hash: hash,
-        email: email
-      })
-      .into('login')
-      .returning('email')
-      .then(loginEmail => {
-        return trx('users')
-        .returning('*')
-        .insert({
-          email: loginEmail[0].email,
-          name: name,
-          joined: new Date()
-        })
-        .then(user => {
-          res.json(user[0])
-        })
+
+  db.transaction(trx => {
+    trx.select('*').from('login').where('email', '=', email)
+      .then(existingEmail => {
+        if(existingEmail.length > 0) {
+          return Promise.reject('Email already exists');
+        } else {
+          return trx.insert({
+            hash: hash,
+            email: email
+          })
+          .into('login')
+          .returning('email')
+          .then(loginEmail => {
+            return trx('users')
+              .returning('*')
+              .insert({
+                email: loginEmail[0].email,
+                name: name,
+                joined: new Date()
+              })
+              .then(user => {
+                res.json(user[0]);
+              });
+          });
+        }
       })
       .then(trx.commit)
-      .catch(trx.rollback)
-    })
+      .catch(trx.rollback);
+  })
+  .catch(err => {
+    console.log(err);
+    if(err === "Email already exists") {
+      res.status(400).json("Email already exists");
+    } else {
+      res.status(400).json("Unable to register");
+    }
+  })
 
   // bcrypt.hash(password, null, null, function(err, hash) {
   //   console.log(hash);
