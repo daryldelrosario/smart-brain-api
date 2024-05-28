@@ -3,12 +3,6 @@
 const handleClarifaiCall = (req, res) => {
   const { imageURL } = req.body;
 
-  // const PAT = '4cefee143f5545ed861ae3abf80dff2b';
-  // const USER_ID = 'clarifai';
-  // const APP_ID = 'main';
-  // const MODEL_ID = 'face-detection';
-  // const MODEL_VERSION_ID = '6dc7e46bc9124c5c8824be4822abe105';
-
   const PAT = process.env.CLARIFAI_PAT;
   const USER_ID = process.env.CLARIFAI_USER_ID;
   const APP_ID = process.env.CLARIFAI_APP_ID;
@@ -40,8 +34,13 @@ const handleClarifaiCall = (req, res) => {
     body: raw
   };
 
-  fetch("https://api.clarifai.com/v2/models/" + MODEL_ID + "/versions/" + MODEL_VERSION_ID + "/outputs", requestOptions)
-          .then(response => response.json())
+  fetch(`https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION_ID}/outputs`, requestOptions)
+          .then(response => {
+            if(!response.ok) {
+              throw new Error('Clarifai API error: ' + response.statusText);
+            }
+            return response.json();
+          })
           .then(result => {
             const regions = result.outputs[0].data.regions;
             res.json(regions);
