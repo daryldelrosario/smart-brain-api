@@ -18,7 +18,8 @@ const db = knex({
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    ssl: { rejectUnauthorized: false }
   }
 });
 
@@ -35,6 +36,15 @@ app.post("/register", register.handleRegister(db, bcrypt));
 app.get("/profile/:id", profile.handleProfileGet(db));
 app.put("/image", image.handleImage(db));
 app.post("/clarifai", clarifai.handleClarifaiCall);
+
+app.get("/test-db", async(req, res) => {
+  try {
+    const result = await db.raw('SELECT 1+1 AS result');
+    res.json(result.rows);
+  } catch(error) {
+    res.status(500).json({error: error.message});
+  }
+});
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
